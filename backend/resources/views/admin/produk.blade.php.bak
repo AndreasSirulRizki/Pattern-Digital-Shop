@@ -1,0 +1,672 @@
+@extends('layouts.admin')
+
+@section('title', 'Kelola Produk - Admin')
+@section('header-title', 'Kelola Produk')
+
+@section('styles')
+<style>
+    /* ── Kelola Produk ── */
+
+    /* Filter bar */
+    .filter-input {
+        background: #0f0f0f;
+        border: 1px solid #1e1e1e;
+        border-radius: 8px;
+        color: #fff;
+        font-size: 12px;
+        font-family: 'Inter', sans-serif;
+        padding: 8px 12px;
+        outline: none;
+        transition: border-color 0.2s;
+    }
+    .filter-input:focus { border-color: #333; }
+    .filter-input::placeholder { color: #2a2a2a; }
+    select.filter-input { cursor: pointer; }
+    select.filter-input option { background: #1a1a1a; }
+
+    /* Table */
+    .prod-table { width: 100%; border-collapse: collapse; }
+    .prod-table th {
+        text-align: left;
+        padding: 10px 14px;
+        font-size: 10px; font-weight: 700;
+        color: #3a3a3a;
+        letter-spacing: 0.08em; text-transform: uppercase;
+        border-bottom: 1px solid #1a1a1a;
+        background: #0f0f0f;
+        white-space: nowrap;
+    }
+    .prod-table td {
+        padding: 11px 14px;
+        font-size: 12px;
+        border-bottom: 1px solid #111;
+        vertical-align: middle;
+    }
+    .prod-table tr:last-child td { border-bottom: none; }
+    .prod-table tbody tr:hover td {
+        background: rgba(192,192,192,0.02);
+    }
+
+    /* Custom checkbox */
+    .tbl-check {
+        width: 15px; height: 15px;
+        accent-color: #c0c0c0;
+        cursor: pointer;
+    }
+
+    /* Prod thumb */
+    .prod-thumb-sm {
+        width: 48px; height: 48px;
+        border-radius: 8px;
+        background: #111;
+        border: 1px solid #1e1e1e;
+        overflow: hidden;
+        flex-shrink: 0;
+    }
+    .prod-thumb-sm img { width: 100%; height: 100%; object-fit: cover; }
+
+    /* Badges */
+    .badge {
+        display: inline-flex; align-items: center; gap: 3px;
+        padding: 3px 8px; border-radius: 10px;
+        font-size: 10px; font-weight: 700;
+        letter-spacing: 0.03em; white-space: nowrap;
+    }
+    .badge-fisik    { background: rgba(168,85,247,0.1);  border:1px solid rgba(168,85,247,0.25); color: #c084fc; }
+    .badge-digital  { background: rgba(192,192,192,0.1); border:1px solid rgba(192,192,192,0.25); color: #c0c0c0; }
+    .badge-aktif    { background: rgba(34,197,94,0.1);   border:1px solid rgba(34,197,94,0.25);  color: #22c55e; }
+    .badge-nonaktif { background: rgba(239,68,68,0.1);   border:1px solid rgba(239,68,68,0.25);  color: #ef4444; }
+
+    /* Stock warning */
+    .stok-low { color: #ef4444; font-weight: 700; }
+    .stok-ok  { color: #888; }
+
+    /* Action buttons */
+    .tbl-btn {
+        display: inline-flex; align-items: center; gap: 4px;
+        padding: 5px 10px; border-radius: 6px;
+        font-size: 11px; font-weight: 500;
+        cursor: pointer; transition: all 0.2s;
+        text-decoration: none; white-space: nowrap;
+        font-family: 'Inter', sans-serif;
+    }
+    .tbl-btn-edit {
+        background: rgba(192,192,192,0.06);
+        border: 1px solid rgba(192,192,192,0.2);
+        color: #c0c0c0;
+    }
+    .tbl-btn-edit:hover { background: rgba(192,192,192,0.12); border-color: #c0c0c0; }
+    .tbl-btn-del {
+        background: rgba(239,68,68,0.06);
+        border: 1px solid rgba(239,68,68,0.2);
+        color: #ef4444;
+    }
+    .tbl-btn-del:hover { background: rgba(239,68,68,0.14); border-color: #ef4444; }
+
+    /* Bulk action bar */
+    .bulk-bar {
+        display: flex; align-items: center; gap: 10px;
+        padding: 10px 16px; border-radius: 8px;
+        background: rgba(192,192,192,0.05);
+        border: 1px solid rgba(192,192,192,0.15);
+        margin-bottom: 12px;
+        flex-wrap: wrap;
+    }
+
+    /* Modal */
+    .modal-overlay {
+        position: fixed; inset: 0;
+        background: rgba(0,0,0,0.75);
+        backdrop-filter: blur(4px);
+        z-index: 200;
+        display: flex; align-items: flex-start; justify-content: center;
+        padding: 24px 16px;
+        overflow-y: auto;
+    }
+    .modal-card {
+        background: linear-gradient(145deg, #1a1a1a, #161616);
+        border: 1px solid #c0c0c0;
+        border-radius: 14px;
+        width: 100%; max-width: 680px;
+        box-shadow: 0 0 60px rgba(0,0,0,0.8), 0 0 30px rgba(192,192,192,0.06);
+        overflow: hidden;
+        flex-shrink: 0;
+    }
+    .modal-header {
+        display: flex; align-items: center; justify-content: space-between;
+        padding: 18px 22px;
+        border-bottom: 1px solid #222;
+        background: linear-gradient(135deg, #1e1e1e, #181818);
+    }
+    .modal-body { padding: 22px; }
+    .modal-footer {
+        padding: 16px 22px;
+        border-top: 1px solid #1e1e1e;
+        display: flex; justify-content: flex-end; gap: 10px;
+        background: #111;
+    }
+
+    /* Form elements */
+    .form-group { margin-bottom: 16px; }
+    .form-label {
+        display: block; font-size: 11px; font-weight: 600;
+        color: #666; margin-bottom: 6px;
+        letter-spacing: 0.04em; text-transform: uppercase;
+    }
+    .form-label span { color: #ef4444; }
+
+    .form-input {
+        width: 100%;
+        background: #0f0f0f;
+        border: 1px solid #222;
+        border-radius: 8px;
+        color: #fff; font-size: 13px;
+        font-family: 'Inter', sans-serif;
+        padding: 9px 13px;
+        outline: none; transition: border-color 0.2s;
+    }
+    .form-input:focus { border-color: #555; box-shadow: 0 0 0 2px rgba(192,192,192,0.06); }
+    .form-input::placeholder { color: #2a2a2a; }
+    select.form-input { cursor: pointer; }
+    select.form-input option { background: #1a1a1a; }
+    textarea.form-input { resize: vertical; min-height: 80px; }
+
+    /* Radio card */
+    .radio-card {
+        border: 1px solid #222; border-radius: 8px;
+        padding: 10px 14px; cursor: pointer;
+        transition: all 0.2s; background: #0f0f0f;
+        display: flex; align-items: center; gap: 10px;
+        flex: 1;
+    }
+    .radio-card:hover { border-color: #333; }
+    .radio-card.selected {
+        border-color: #c0c0c0;
+        background: linear-gradient(135deg, #1e1e1e, #161616);
+        box-shadow: 0 0 10px rgba(192,192,192,0.06);
+    }
+    .radio-card input[type="radio"] { display: none; }
+
+    /* Upload area */
+    .upload-area {
+        border: 1px dashed #2a2a2a;
+        border-radius: 8px;
+        padding: 20px;
+        text-align: center;
+        cursor: pointer;
+        transition: all 0.2s;
+        background: #0a0a0a;
+    }
+    .upload-area:hover { border-color: #555; background: #0f0f0f; }
+
+    /* Pagination */
+    .page-btn {
+        display: inline-flex; align-items: center; justify-content: center;
+        width: 30px; height: 30px;
+        border-radius: 6px; font-size: 11px; font-weight: 600;
+        cursor: pointer; transition: all 0.15s;
+        border: 1px solid #1a1a1a; color: #555;
+        background: transparent; font-family: 'Inter', sans-serif;
+    }
+    .page-btn:hover { border-color: #333; color: #888; }
+    .page-btn.active {
+        background: linear-gradient(135deg, #222, #181818);
+        border-color: rgba(192,192,192,0.3); color: #c0c0c0;
+    }
+
+    /* Scrollable table wrapper */
+    .table-wrap { overflow-x: auto; }
+    .table-wrap::-webkit-scrollbar { height: 3px; }
+    .table-wrap::-webkit-scrollbar-thumb { background: #1e1e1e; border-radius: 2px; }
+</style>
+@endsection
+
+@section('content')
+@php
+$produk = [
+    ['id'=>1,  'nama'=>'Pola Kemeja Pria Slim Fit',       'sku'=>'PKP-SLM-001', 'kategori'=>'Kemeja Pria',   'tipe'=>'fisik',   'harga'=>75000,  'stok'=>12, 'status'=>'aktif'],
+    ['id'=>2,  'nama'=>'Pola Kemeja Pria Oxford Classic',  'sku'=>'PKP-OXF-002', 'kategori'=>'Kemeja Pria',   'tipe'=>'fisik',   'harga'=>85000,  'stok'=>3,  'status'=>'aktif'],
+    ['id'=>3,  'nama'=>'Pola Gaun Pesta Malam A-Line',     'sku'=>'PGP-ALN-003', 'kategori'=>'Gaun & Dress',  'tipe'=>'fisik',   'harga'=>150000, 'stok'=>7,  'status'=>'aktif'],
+    ['id'=>4,  'nama'=>'Pola Gaun Casual Wrap Dress',      'sku'=>'PGC-WRP-004', 'kategori'=>'Gaun & Dress',  'tipe'=>'digital', 'harga'=>55000,  'stok'=>0,  'status'=>'aktif'],
+    ['id'=>5,  'nama'=>'Pola Kemeja Wanita Oversize',      'sku'=>'PKW-OVR-005', 'kategori'=>'Kemeja Wanita', 'tipe'=>'digital', 'harga'=>65000,  'stok'=>0,  'status'=>'aktif'],
+    ['id'=>6,  'nama'=>'Pola Celana Chino Tapered',        'sku'=>'PCC-TAP-006', 'kategori'=>'Celana & Rok',  'tipe'=>'fisik',   'harga'=>90000,  'stok'=>2,  'status'=>'aktif'],
+    ['id'=>7,  'nama'=>'Pola Blazer Pria Slim Fit',        'sku'=>'PBP-SLM-007', 'kategori'=>'Kemeja Pria',   'tipe'=>'fisik',   'harga'=>120000, 'stok'=>5,  'status'=>'aktif'],
+    ['id'=>8,  'nama'=>'Pola Rok Pleated Midi',            'sku'=>'PRP-MDI-008', 'kategori'=>'Celana & Rok',  'tipe'=>'digital', 'harga'=>45000,  'stok'=>0,  'status'=>'nonaktif'],
+    ['id'=>9,  'nama'=>'Pola Kemeja Flannel Oversize',     'sku'=>'PKF-OVR-009', 'kategori'=>'Kemeja Pria',   'tipe'=>'fisik',   'harga'=>80000,  'stok'=>0,  'status'=>'nonaktif'],
+    ['id'=>10, 'nama'=>'Pola Gaun Kondangan Batik Modern', 'sku'=>'PGK-BTK-010', 'kategori'=>'Gaun & Dress',  'tipe'=>'fisik',   'harga'=>175000, 'stok'=>4,  'status'=>'aktif'],
+];
+$totalProduk = count($produk);
+$aktifCount  = collect($produk)->where('status','aktif')->count();
+@endphp
+
+{{-- Alpine.js state untuk seluruh halaman --}}
+<div x-data="{
+    showModal: false,
+    modalMode: 'tambah',
+    editData: {},
+    selected: [],
+    selectAll: false,
+    tipe: 'fisik',
+    statusProduk: 'aktif',
+
+    openTambah() {
+        this.modalMode = 'tambah';
+        this.tipe = 'fisik';
+        this.statusProduk = 'aktif';
+        this.editData = {};
+        this.showModal = true;
+    },
+    openEdit(data) {
+        this.modalMode = 'edit';
+        this.editData = data;
+        this.tipe = data.tipe;
+        this.statusProduk = data.status;
+        this.showModal = true;
+    },
+    closeModal() { this.showModal = false; },
+    toggleAll() {
+        if (this.selectAll) {
+            this.selected = @json(array_column($produk, 'id'));
+        } else {
+            this.selected = [];
+        }
+    },
+}">
+
+    {{-- ── Header ── --}}
+    <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
+        <div>
+            <h2 class="font-montserrat font-bold text-white text-xl">Kelola Produk</h2>
+            <p class="text-xs mt-1" style="color:#555;">
+                Total <span style="color:#c0c0c0; font-weight:600;">{{ $totalProduk }}</span> produk terdaftar
+                &nbsp;·&nbsp;
+                <span style="color:#22c55e;">{{ $aktifCount }} aktif</span>
+                &nbsp;·&nbsp;
+                <span style="color:#ef4444;">{{ $totalProduk - $aktifCount }} nonaktif</span>
+            </p>
+        </div>
+        <button class="btn-admin-primary gap-2" @click="openTambah()">
+            <i class="fas fa-plus" style="font-size:11px;"></i>
+            Tambah Produk
+        </button>
+    </div>
+
+    {{-- ── Filter & Search ── --}}
+    <div class="flex flex-wrap gap-3 mb-4 p-4 rounded-xl" style="background:#111; border:1px solid #1a1a1a;">
+        {{-- Search --}}
+        <div class="relative flex-1" style="min-width:200px;">
+            <i class="fas fa-search absolute left-3 top-1/2 -translate-y-1/2" style="color:#2a2a2a; font-size:11px;"></i>
+            <input type="text" placeholder="Cari nama produk, SKU..."
+                   class="filter-input w-full pl-9" style="padding-left:34px;">
+        </div>
+        {{-- Kategori --}}
+        <select class="filter-input" style="min-width:150px;">
+            <option value="">Semua Kategori</option>
+            @foreach(['Kemeja Pria','Kemeja Wanita','Gaun & Dress','Celana & Rok','Aksesoris'] as $k)
+            <option>{{ $k }}</option>
+            @endforeach
+        </select>
+        {{-- Tipe --}}
+        <select class="filter-input" style="min-width:120px;">
+            <option value="">Semua Tipe</option>
+            <option>Fisik</option>
+            <option>Digital</option>
+        </select>
+        {{-- Status --}}
+        <select class="filter-input" style="min-width:120px;">
+            <option value="">Semua Status</option>
+            <option>Aktif</option>
+            <option>Nonaktif</option>
+        </select>
+        {{-- Apply --}}
+        <button class="btn-admin-outline gap-1.5" style="padding:8px 14px;">
+            <i class="fas fa-filter" style="font-size:10px;"></i> Terapkan
+        </button>
+        <button class="btn-admin-outline gap-1.5" style="padding:8px 12px; color:#444; border-color:#161616;">
+            <i class="fas fa-times" style="font-size:10px;"></i>
+        </button>
+    </div>
+
+    {{-- ── Bulk Action Bar (muncul kalo ada yang diselect) ── --}}
+    <div class="bulk-bar" x-show="selected.length > 0"
+         x-transition:enter="transition ease-out duration-150"
+         x-transition:enter-start="opacity-0 -translate-y-1"
+         x-transition:enter-end="opacity-100 translate-y-0">
+        <i class="fas fa-check-square" style="color:#c0c0c0; font-size:13px;"></i>
+        <span class="text-sm font-semibold text-white" x-text="selected.length + ' produk dipilih'"></span>
+        <div style="flex:1;"></div>
+        <select class="filter-input" style="min-width:160px; font-size:11px; padding:6px 10px;">
+            <option value="">Pilih aksi...</option>
+            <option value="hapus">Hapus Terpilih</option>
+            <option value="aktif">Aktifkan</option>
+            <option value="nonaktif">Nonaktifkan</option>
+        </select>
+        <button class="btn-admin-primary gap-1" style="padding:6px 14px; font-size:11px;">
+            <i class="fas fa-play" style="font-size:9px;"></i> Terapkan
+        </button>
+        <button class="tbl-btn" style="background:transparent; border:1px solid #222; color:#444; padding:5px 10px;"
+                @click="selected=[]; selectAll=false;">
+            <i class="fas fa-times" style="font-size:10px;"></i>
+        </button>
+    </div>
+
+    {{-- ── Tabel Produk ── --}}
+    <div style="background:linear-gradient(145deg,#1a1a1a,#161616); border:1px solid #222; border-radius:12px; overflow:hidden;">
+
+        {{-- Table stats bar --}}
+        <div style="padding:12px 16px; border-bottom:1px solid #161616; display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:8px;">
+            <span class="text-xs" style="color:#444;">Menampilkan {{ $totalProduk }} produk</span>
+            <div class="flex items-center gap-2">
+                <button class="btn-admin-outline gap-1.5" style="padding:6px 12px; font-size:11px;">
+                    <i class="fas fa-download" style="font-size:10px;"></i> Export CSV
+                </button>
+                <button class="btn-admin-outline gap-1.5" style="padding:6px 12px; font-size:11px;">
+                    <i class="fas fa-upload" style="font-size:10px;"></i> Import
+                </button>
+            </div>
+        </div>
+
+        <div class="table-wrap">
+            <table class="prod-table">
+                <thead>
+                    <tr>
+                        <th style="width:40px; padding:10px 14px;">
+                            <input type="checkbox" class="tbl-check"
+                                   x-model="selectAll" @change="toggleAll()">
+                        </th>
+                        <th style="width:60px;">Foto</th>
+                        <th>Nama Produk / SKU</th>
+                        <th>Kategori</th>
+                        <th>Tipe</th>
+                        <th>Harga</th>
+                        <th>Stok</th>
+                        <th>Status</th>
+                        <th style="width:120px;">Aksi</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach($produk as $p)
+                    <tr>
+                        {{-- Checkbox --}}
+                        <td>
+                            <input type="checkbox" class="tbl-check"
+                                   :value="{{ $p['id'] }}" x-model="selected">
+                        </td>
+
+                        {{-- Foto --}}
+                        <td>
+                            <div class="prod-thumb-sm">
+                                <img src="https://via.placeholder.com/48x48/111111/333333?text={{ urlencode(substr($p['nama'],0,1)) }}"
+                                     alt="{{ $p['nama'] }}"
+                                     onerror="this.src='https://via.placeholder.com/48x48/111111/333333?text=P'">
+                            </div>
+                        </td>
+
+                        {{-- Nama + SKU --}}
+                        <td>
+                            <div class="font-semibold text-white text-xs leading-snug" style="max-width:220px;">
+                                {{ $p['nama'] }}
+                            </div>
+                            <div class="text-xs mt-0.5 font-mono" style="color:#3a3a3a;">{{ $p['sku'] }}</div>
+                        </td>
+
+                        {{-- Kategori --}}
+                        <td>
+                            <span class="text-xs" style="color:#666;">{{ $p['kategori'] }}</span>
+                        </td>
+
+                        {{-- Tipe --}}
+                        <td>
+                            <span class="badge {{ $p['tipe'] === 'digital' ? 'badge-digital' : 'badge-fisik' }}">
+                                <i class="fas {{ $p['tipe'] === 'digital' ? 'fa-file-pdf' : 'fa-box' }}" style="font-size:8px;"></i>
+                                {{ ucfirst($p['tipe']) }}
+                            </span>
+                        </td>
+
+                        {{-- Harga --}}
+                        <td>
+                            <span class="font-montserrat font-bold" style="color:#c0c0c0; font-size:12px;">
+                                Rp {{ number_format($p['harga'], 0, ',', '.') }}
+                            </span>
+                        </td>
+
+                        {{-- Stok --}}
+                        <td>
+                            @if($p['tipe'] === 'digital')
+                                <span style="color:#333; font-size:11px;">∞</span>
+                            @elseif($p['stok'] === 0)
+                                <span class="text-xs font-bold" style="color:#ef4444;">Habis</span>
+                            @elseif($p['stok'] < 5)
+                                <span class="text-xs font-bold stok-low">{{ $p['stok'] }} <span style="font-weight:400; color:#7f1d1d;">⚠</span></span>
+                            @else
+                                <span class="text-xs stok-ok">{{ $p['stok'] }}</span>
+                            @endif
+                        </td>
+
+                        {{-- Status --}}
+                        <td>
+                            <span class="badge {{ $p['status'] === 'aktif' ? 'badge-aktif' : 'badge-nonaktif' }}">
+                                <i class="fas {{ $p['status'] === 'aktif' ? 'fa-check-circle' : 'fa-times-circle' }}" style="font-size:8px;"></i>
+                                {{ ucfirst($p['status']) }}
+                            </span>
+                        </td>
+
+                        {{-- Aksi --}}
+                        <td>
+                            <div class="flex items-center gap-1.5">
+                                <button class="tbl-btn tbl-btn-edit"
+                                        @click="openEdit({{ json_encode($p) }})">
+                                    <i class="fas fa-pen" style="font-size:9px;"></i> Edit
+                                </button>
+                                <button class="tbl-btn tbl-btn-del"
+                                        onclick="return confirm('Hapus produk ini?')">
+                                    <i class="fas fa-trash" style="font-size:9px;"></i>
+                                </button>
+                            </div>
+                        </td>
+                    </tr>
+                    @endforeach
+                </tbody>
+            </table>
+        </div>
+
+        {{-- Pagination --}}
+        <div style="padding:12px 16px; border-top:1px solid #111; display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:8px; background:rgba(0,0,0,0.2);">
+            <span class="text-xs" style="color:#333;">Menampilkan 1–{{ $totalProduk }} dari {{ $totalProduk }} produk</span>
+            <div class="flex items-center gap-1">
+                <button class="page-btn"><i class="fas fa-chevron-left" style="font-size:9px;"></i></button>
+                <button class="page-btn active">1</button>
+                <button class="page-btn">2</button>
+                <button class="page-btn">3</button>
+                <button class="page-btn"><i class="fas fa-chevron-right" style="font-size:9px;"></i></button>
+            </div>
+        </div>
+    </div>
+
+    {{-- ════════════════════════════════════════════════ --}}
+    {{-- MODAL TAMBAH / EDIT PRODUK                       --}}
+    {{-- ════════════════════════════════════════════════ --}}
+    <div class="modal-overlay"
+         x-show="showModal"
+         x-transition:enter="transition ease-out duration-200"
+         x-transition:enter-start="opacity-0"
+         x-transition:enter-end="opacity-100"
+         x-transition:leave="transition ease-in duration-150"
+         x-transition:leave-start="opacity-100"
+         x-transition:leave-end="opacity-0"
+         @click.self="closeModal()">
+
+        <div class="modal-card"
+             x-transition:enter="transition ease-out duration-200"
+             x-transition:enter-start="opacity-0 scale-95"
+             x-transition:enter-end="opacity-100 scale-100"
+             @click.stop>
+
+            {{-- Modal Header --}}
+            <div class="modal-header">
+                <div class="flex items-center gap-3">
+                    <div style="width:32px; height:32px; border-radius:8px; background:linear-gradient(135deg,#2a2a2a,#1a1a1a); border:1px solid rgba(192,192,192,0.2); display:flex; align-items:center; justify-content:center;">
+                        <i class="fas" :class="modalMode === 'tambah' ? 'fa-plus' : 'fa-pen'"
+                           style="font-size:12px; color:#c0c0c0;"></i>
+                    </div>
+                    <div>
+                        <h3 class="font-montserrat font-bold text-white text-sm"
+                            x-text="modalMode === 'tambah' ? 'Tambah Produk Baru' : 'Edit Produk'"></h3>
+                        <p class="text-xs mt-0.5" style="color:#444;"
+                           x-text="modalMode === 'edit' ? 'SKU: ' + (editData.sku || '—') : 'Isi data produk dengan lengkap'"></p>
+                    </div>
+                </div>
+                <button @click="closeModal()"
+                        style="width:28px; height:28px; border-radius:6px; background:transparent; border:1px solid #222; color:#555; display:flex; align-items:center; justify-content:center; cursor:pointer; transition:all 0.2s;"
+                        onmouseover="this.style.borderColor='#555'; this.style.color='#ccc';"
+                        onmouseout="this.style.borderColor='#222'; this.style.color='#555';">
+                    <i class="fas fa-times" style="font-size:11px;"></i>
+                </button>
+            </div>
+
+            {{-- Modal Body --}}
+            <div class="modal-body" style="max-height:70vh; overflow-y:auto;">
+
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-x-5">
+
+                    {{-- Nama Produk --}}
+                    <div class="form-group sm:col-span-2">
+                        <label class="form-label">Nama Produk <span>*</span></label>
+                        <input type="text" class="form-input"
+                               placeholder="Contoh: Pola Kemeja Pria Slim Fit"
+                               :value="editData.nama || ''">
+                    </div>
+
+                    {{-- SKU --}}
+                    <div class="form-group">
+                        <label class="form-label">SKU / Kode Produk <span>*</span></label>
+                        <input type="text" class="form-input"
+                               placeholder="PKP-SLM-001"
+                               :value="editData.sku || ''">
+                    </div>
+
+                    {{-- Kategori --}}
+                    <div class="form-group">
+                        <label class="form-label">Kategori <span>*</span></label>
+                        <select class="form-input">
+                            <option value="">Pilih kategori...</option>
+                            @foreach(['Kemeja Pria','Kemeja Wanita','Gaun & Dress','Celana & Rok','Aksesoris'] as $k)
+                            <option>{{ $k }}</option>
+                            @endforeach
+                        </select>
+                    </div>
+
+                    {{-- Tipe Produk --}}
+                    <div class="form-group sm:col-span-2">
+                        <label class="form-label">Tipe Produk <span>*</span></label>
+                        <div class="flex gap-3">
+                            <label class="radio-card" :class="tipe === 'fisik' ? 'selected' : ''"
+                                   @click="tipe = 'fisik'">
+                                <input type="radio" name="tipe" value="fisik" x-model="tipe">
+                                <div style="width:32px; height:32px; border-radius:8px; background:#111; border:1px solid #222; display:flex; align-items:center; justify-content:center; flex-shrink:0;">
+                                    <i class="fas fa-box" style="color:#c084fc; font-size:13px;"></i>
+                                </div>
+                                <div>
+                                    <div class="text-sm font-semibold text-white">Fisik</div>
+                                    <div class="text-xs mt-0.5" style="color:#555;">Dikirim via kurir</div>
+                                </div>
+                            </label>
+                            <label class="radio-card" :class="tipe === 'digital' ? 'selected' : ''"
+                                   @click="tipe = 'digital'">
+                                <input type="radio" name="tipe" value="digital" x-model="tipe">
+                                <div style="width:32px; height:32px; border-radius:8px; background:#111; border:1px solid #222; display:flex; align-items:center; justify-content:center; flex-shrink:0;">
+                                    <i class="fas fa-file-pdf" style="color:#c0c0c0; font-size:13px;"></i>
+                                </div>
+                                <div>
+                                    <div class="text-sm font-semibold text-white">Digital PDF</div>
+                                    <div class="text-xs mt-0.5" style="color:#555;">Download otomatis</div>
+                                </div>
+                            </label>
+                        </div>
+                    </div>
+
+                    {{-- Harga --}}
+                    <div class="form-group">
+                        <label class="form-label">Harga (Rp) <span>*</span></label>
+                        <div class="relative">
+                            <span style="position:absolute; left:12px; top:50%; transform:translateY(-50%); color:#444; font-size:12px;">Rp</span>
+                            <input type="number" class="form-input" placeholder="75000"
+                                   style="padding-left:36px;"
+                                   :value="editData.harga || ''">
+                        </div>
+                    </div>
+
+                    {{-- Stok (hanya fisik) --}}
+                    <div class="form-group" x-show="tipe === 'fisik'">
+                        <label class="form-label">Stok <span>*</span></label>
+                        <input type="number" class="form-input" placeholder="0" min="0"
+                               :value="editData.stok || 0">
+                    </div>
+
+                    {{-- Deskripsi --}}
+                    <div class="form-group sm:col-span-2">
+                        <label class="form-label">Deskripsi Produk</label>
+                        <textarea class="form-input"
+                                  placeholder="Deskripsi detail produk pola jahit, ukuran, bahan, dan instruksi pemakaian..."></textarea>
+                    </div>
+
+                    {{-- Upload Gambar --}}
+                    <div class="form-group" :class="tipe === 'digital' ? '' : 'sm:col-span-2'">
+                        <label class="form-label">Upload Gambar Produk</label>
+                        <div class="upload-area" onclick="document.getElementById('uploadGambar').click()">
+                            <i class="fas fa-image" style="color:#2a2a2a; font-size:24px; margin-bottom:8px; display:block;"></i>
+                            <p class="text-xs" style="color:#444;">Drag & drop atau <span style="color:#c0c0c0; cursor:pointer;">klik untuk upload</span></p>
+                            <p class="text-xs mt-1" style="color:#2a2a2a;">PNG, JPG, WEBP — Maks. 2MB</p>
+                            <input type="file" id="uploadGambar" accept="image/*" style="display:none;">
+                        </div>
+                    </div>
+
+                    {{-- Upload PDF (hanya digital) --}}
+                    <div class="form-group" x-show="tipe === 'digital'">
+                        <label class="form-label">Upload File PDF <span>*</span></label>
+                        <div class="upload-area" onclick="document.getElementById('uploadPDF').click()">
+                            <i class="fas fa-file-pdf" style="color:#2a2a2a; font-size:24px; margin-bottom:8px; display:block;"></i>
+                            <p class="text-xs" style="color:#444;">Drag & drop atau <span style="color:#c0c0c0; cursor:pointer;">klik untuk upload</span></p>
+                            <p class="text-xs mt-1" style="color:#2a2a2a;">PDF saja — Maks. 50MB</p>
+                            <input type="file" id="uploadPDF" accept=".pdf" style="display:none;">
+                        </div>
+                    </div>
+
+                    {{-- Status --}}
+                    <div class="form-group sm:col-span-2">
+                        <label class="form-label">Status Produk <span>*</span></label>
+                        <div class="flex gap-3">
+                            <label class="radio-card" :class="statusProduk === 'aktif' ? 'selected' : ''"
+                                   @click="statusProduk = 'aktif'" style="flex:none; padding:8px 16px;">
+                                <input type="radio" name="status" value="aktif" x-model="statusProduk">
+                                <i class="fas fa-check-circle" style="color:#22c55e; font-size:13px;"></i>
+                                <span class="text-sm font-semibold text-white">Aktif</span>
+                            </label>
+                            <label class="radio-card" :class="statusProduk === 'nonaktif' ? 'selected' : ''"
+                                   @click="statusProduk = 'nonaktif'" style="flex:none; padding:8px 16px;">
+                                <input type="radio" name="status" value="nonaktif" x-model="statusProduk">
+                                <i class="fas fa-times-circle" style="color:#ef4444; font-size:13px;"></i>
+                                <span class="text-sm font-semibold text-white">Nonaktif</span>
+                            </label>
+                        </div>
+                    </div>
+
+                </div>
+            </div>
+
+            {{-- Modal Footer --}}
+            <div class="modal-footer">
+                <button @click="closeModal()" class="btn-admin-outline gap-2">
+                    <i class="fas fa-times" style="font-size:10px;"></i> Batal
+                </button>
+                <button class="btn-admin-primary gap-2">
+                    <i class="fas fa-save" style="font-size:11px;"></i>
+                    <span x-text="modalMode === 'tambah' ? 'Simpan Produk' : 'Update Produk'"></span>
+                </button>
+            </div>
+
+        </div>
+    </div>{{-- end modal --}}
+
+</div>{{-- end x-data --}}
+@endsection

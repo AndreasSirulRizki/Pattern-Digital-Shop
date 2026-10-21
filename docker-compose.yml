@@ -1,0 +1,67 @@
+version: '3.8'
+
+services:
+
+  mysql-server:
+    image: mysql:8.0
+    container_name: pattern-mysql
+    restart: unless-stopped
+    environment:
+      MYSQL_ROOT_PASSWORD: root
+      MYSQL_DATABASE: db_pattern_shop
+    ports:
+      - "3308:3306"
+    volumes:
+      - pattern_db_data:/var/lib/mysql
+    networks:
+      - pattern-network
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-uroot", "-proot"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  app-laravel:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: pattern-laravel
+    restart: unless-stopped
+    working_dir: /var/www
+    volumes:
+      - ./backend:/var/www
+    ports:
+      - "8001:8000"
+    networks:
+      - pattern-network
+    dns:
+      - 8.8.8.8
+      - 8.8.4.4
+    depends_on:
+      mysql-server:
+        condition: service_healthy
+    command: php artisan serve --host=0.0.0.0 --port=8000
+
+  phpmyadmin:
+    image: phpmyadmin/phpmyadmin:latest
+    container_name: pattern-phpmyadmin
+    restart: unless-stopped
+    environment:
+      PMA_HOST: mysql-server
+      PMA_PORT: 3306
+      MYSQL_ROOT_PASSWORD: root
+    ports:
+      - "8082:80"
+    networks:
+      - pattern-network
+    depends_on:
+      mysql-server:
+        condition: service_healthy
+
+volumes:
+  pattern_db_data:
+    driver: local
+
+networks:
+  pattern-network:
+    driver: bridge
